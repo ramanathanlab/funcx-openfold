@@ -70,7 +70,7 @@ def func(
         --hhsearch_binary_path hhsearch \
         --kalign_binary_path kalign
         --config_preset "model_1_ptm"
-        --openfold_checkpoint_path {openfold_path}/resources/openfold_params/finetuning_ptm_2.pt"""
+        --openfold_checkpoint_path {openfold_path}/openfold/resources/openfold_params/finetuning_ptm_2.pt"""
 
     # This function blocks until the job finishes
     proc = subprocess.run(command.split(), capture_output=True)
