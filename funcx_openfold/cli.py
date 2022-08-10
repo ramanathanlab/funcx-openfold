@@ -40,7 +40,7 @@ def func(
 
     # Write the fasta file
     output_dir.mkdir(exist_ok=True)
-    fasta_path = output_dir / f"{hash(fasta_str)}.fasta"
+    fasta_path = output_dir / "sequence.fasta"
     fasta_path.write_text(fasta_str)
 
     command = f"""python3 {openfold_path}/run_pretrained_openfold.py \
