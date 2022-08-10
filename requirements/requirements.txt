@@ -1,2 +1,3 @@
-typer
 funcx
+typer[all]
+pydantic

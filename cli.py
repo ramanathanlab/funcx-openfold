@@ -1,61 +1,130 @@
-import typer
+"""CLI for OpenFold funcX endpoint."""
 import subprocess
 from pathlib import Path
-from funcx.sdk.client import FuncXClient
+from uuid import UUID
 
+import typer
+from funcx.sdk.client import FuncXClient
+from pydantic import BaseModel
+from rich import print
 
 app = typer.Typer()
 
 
+def _write_log(contents: str, path: Path) -> None:
+    with open(path, "w") as f:
+        f.write(contents)
+
+
+class OpenFoldResult(BaseModel):
+    """Return result from the OpenFold funcX endpoint."""
+
+    returncode: int
+    """Return code of the OpenFold job."""
+    stdout: str
+    """Standard out of the OpenFold job."""
+    stderr: str
+    """Standard error of the OpenFold job."""
+
+
 def func(
     fasta_str: str,
-    data_path: Path,
-    output_dir: Path = Path("./"),
-    openfold_path: Path = Path("openfold"),
-) -> None:
-    # TODO: What is best way to specify run_pretrained_openfold.py?
-    fasta_path = Path(f"/tmp/{hash(fasta_str)}.fasta")
+    database_path: Path,
+    output_dir: Path,
+    openfold_path: Path,
+) -> OpenFoldResult:
+    """Run OpenFold.
+
+    Parameters
+    ----------
+    fasta_str : str
+        The raw string corresponding to the fasta file text.
+    database_path : Path
+        The path to the database on the cluster.
+    output_dir : Path
+        The path to write the results to on the cluster.
+    openfold_path : Path
+        The path to the OpenFold repository on the cluster.
+
+    Return
+    ------
+    OpenFoldResult : Result object storing the returncode, stdout, and stderr.
+    """
+
+    # Write the fasta file
+    output_dir.mkdir(exist_ok=True)
+    fasta_path = output_dir / f"{hash(fasta_str)}.fasta"
     fasta_path.write_text(fasta_str)
-    cmd = f"""python3 run_pretrained_openfold.py \
+
+    command = f"""python3 {openfold_path}run_pretrained_openfold.py \
         {fasta_path} \
-        {data_path}/pdb_mmcif/mmcif_files/ \
-        --uniref90_database_path {data_path}/uniref90/uniref90.fasta \
-        --mgnify_database_path {data_path}/mgnify/mgy_clusters_2018_12.fa \
-        --pdb70_database_path {data_path}/pdb70/pdb70 \
-        --uniclust30_database_path {data_path}/uniclust30/uniclust30_2018_08/uniclust30_2018_08 \
+        {database_path}/pdb_mmcif/mmcif_files/ \
+        --uniref90_database_path {database_path}/uniref90/uniref90.fasta \
+        --mgnify_database_path {database_path}/mgnify/mgy_clusters_2018_12.fa \
+        --pdb70_database_path {database_path}/pdb70/pdb70 \
+        --uniclust30_database_path {database_path}/uniclust30/uniclust30_2018_08/uniclust30_2018_08 \
         --output_dir {output_dir} \
-        --bfd_database_path {data_path}/bfd/bfd_metaclust_clu_complete_id30_c90_final_seq.sorted_opt \
+        --bfd_database_path {database_path}/bfd/bfd_metaclust_clu_complete_id30_c90_final_seq.sorted_opt \
         --model_device "cuda:0" \
         --jackhmmer_binary_path jackhmmer \
         --hhblits_binary_path hhblits \
         --hhsearch_binary_path hhsearch \
         --kalign_binary_path kalign
         --config_preset "model_1_ptm"
-        --openfold_checkpoint_path {openfold_path}/resources/openfold_params/finetuning_ptm_2.pt"""
-    proc = subprocess.run(cmd.split(), capture_output=True)
-    # This function should block until the job finishes
-    # TODO: Process stdout, stderr
+        --openfold_checkpoint_path {openfold_path}/openfold/resources/openfold_params/finetuning_ptm_2.pt"""
 
-    # Clean up temp file
-    fasta_path.unlink()
+    # This function blocks until the job finishes
+    proc = subprocess.run(command.split(), capture_output=True)
+
+    # Process the output
+    result = OpenFoldResult(
+        returncode=proc.returncode,
+        stdout=proc.stdout.decode("utf-8"),
+        stderr=proc.stderr.decode("utf-8"),
+    )
+    _write_log(result.stdout, output_dir / "stdout.log")
+    _write_log(result.stderr, output_dir / "stderr.log")
+
+    return result
 
 
 @app.command()
 def register() -> None:
+    """Register funcX OpenFold function and output the --function UUID."""
     fxc = FuncXClient()
-    func_uuid = fxc.register_function(func)
-    print(f"Registered OpenFold at endpoint: {func_uuid}")
+    function_id = fxc.register_function(func)
+    print(f"Registered OpenFold at endpoint: {function_id}")
 
 
 @app.command()
 def run(
-    endpoint: str,
-    func_uuid: str,
-    fasta_file: Path,
-    data_path: Path,
-    output_dir: Path = Path("./"),
-    openfold_path: Path = Path("openfold"),
+    endpoint_id: UUID = typer.Option(
+        ..., "--endpoint", help="UUID for cluster endpoint."
+    ),
+    function_id: UUID = typer.Option(
+        ..., "--function", help="UUID for registered function."
+    ),
+    fasta_file: Path = typer.Option(
+        ...,
+        "-f",
+        "--fasta",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        help="Fasta file containing sequence to fold.",
+    ),
+    database_path: Path = typer.Option(
+        ..., "-d", "--database", help="Path to batabase on cluster."
+    ),
+    output_dir: Path = typer.Option(
+        ..., "-o", "--output", help="Output directory on cluster."
+    ),
+    openfold_path: Path = typer.Option(
+        ..., "--openfold", help="Path to OpenFold repository on cluster."
+    ),
 ) -> None:
+    """Submit an OpenFold job to the cluster to fold --fasta
+    using the registered --function UUID."""
 
     # Total payload must be < 10MB
     fasta_str = fasta_file.read_text()
@@ -63,17 +132,22 @@ def run(
     fxc = FuncXClient()
     task_id = fxc.run(
         fasta_str,
-        data_path,
+        database_path,
         output_dir,
         openfold_path,
-        function_id=func_uuid,
-        endpoint_id=endpoint,
+        function_id=str(function_id),
+        endpoint_id=str(endpoint_id),
     )
 
     print(f"OpenFold job submitted with task ID: {task_id}")
 
 
 @app.command()
-def status(task_id: str) -> None:
+def status(task_id: UUID = typer.Argument(..., help="A task UUID.")) -> None:
+    """Check the status of the a funcX task given the --task-id."""
     fxc = FuncXClient()
-    print(fxc.get_result(task_id))
+    print(fxc.get_result(str(task_id)))
+
+
+if __name__ == "__main__":
+    app()
