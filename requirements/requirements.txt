@@ -1,3 +1,4 @@
 funcx
 typer[all]
+rich
 pydantic
