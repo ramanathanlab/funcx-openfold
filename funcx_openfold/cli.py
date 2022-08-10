@@ -55,7 +55,7 @@ def func(
     fasta_path = output_dir / f"{hash(fasta_str)}.fasta"
     fasta_path.write_text(fasta_str)
 
-    command = f"""python3 {openfold_path}run_pretrained_openfold.py \
+    command = f"""python3 {openfold_path}/run_pretrained_openfold.py \
         {fasta_path} \
         {database_path}/pdb_mmcif/mmcif_files/ \
         --uniref90_database_path {database_path}/uniref90/uniref90.fasta \
