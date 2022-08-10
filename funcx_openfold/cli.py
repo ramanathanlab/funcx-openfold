@@ -134,6 +134,7 @@ def status(task_id: UUID = typer.Argument(..., help="A task UUID.")) -> None:
 
 
 def main() -> None:
+    """Entry point for CLI."""
     app()
 
 

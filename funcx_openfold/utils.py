@@ -1,9 +1,11 @@
+"""OpenFold utilities."""
 from pathlib import Path
 
 from pydantic import BaseModel
 
 
 def write_log(contents: str, path: Path) -> None:
+    """Write contents to path."""
     with open(path, "w") as f:
         f.write(contents)
 
