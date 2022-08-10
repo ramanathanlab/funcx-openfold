@@ -1,12 +1,31 @@
 # funcx-openfold
 FuncX OpenFold interface.
 
+# Install
+
+Please run the following commands to install:
+```
+git clone https://github.com/ramanathanlab/funcx-openfold.git
+cd funcx-openfold
+pip3 install -U pip setuptools wheel
+pip3 install -r requirements/requirements.txt
+pip3 install -e .
+```
+
+To test the installation and view the CLI command options:
+```
+funcx-openfold --help
+funcx-openfold register --help
+funcx-openfold run --help
+funcx-openfold status --help
+```
+
 # CLI
 
 **Usage**:
 
 ```console
-$ [OPTIONS] COMMAND [ARGS]...
+$ funcx-openfold COMMAND [ARGS]...
 ```
 
 **Options**:
@@ -17,9 +36,9 @@ $ [OPTIONS] COMMAND [ARGS]...
 
 **Commands**:
 
-* `register`: Register funcX OpenFold function and output...
-* `run`: Submit an OpenFold job to the cluster to fold...
-* `status`: Check the status of the a funcX task given...
+* `register`: Register funcX OpenFold function and output the --function UUID.
+* `run`: Submit an OpenFold job to the cluster to fold --fasta with a registered --function UUID.
+* `status`: Check the status of the a funcX task given the --task-id.
 
 ## `register`
 
@@ -75,5 +94,13 @@ $ status [OPTIONS] TASK_ID
 * `--help`: Show this message and exit.
 
 # Contributing
+
+To install:
+```
+pip3 install -U pip setuptools wheel
+pip3 install -r requirements/dev.txt
+pip3 install -r requirements/requirements.txt
+pip3 install -e .
+```
 
 To generate the documentation: `typer cli.py utils docs`

@@ -6,6 +6,7 @@ pytest
 isort
 pylint
 pydocstyle
+typer-cli
 
 # mypy type stubs:
 types-PyYAML

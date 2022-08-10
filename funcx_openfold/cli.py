@@ -50,7 +50,6 @@ def func(
     ------
     OpenFoldResult : Result object storing the returncode, stdout, and stderr.
     """
-
     # Write the fasta file
     output_dir.mkdir(exist_ok=True)
     fasta_path = output_dir / f"{hash(fasta_str)}.fasta"
@@ -123,15 +122,12 @@ def run(
         ..., "--openfold", help="Path to OpenFold repository on cluster."
     ),
 ) -> None:
-    """Submit an OpenFold job to the cluster to fold --fasta
-    using the registered --function UUID."""
-
-    # Total payload must be < 10MB
+    """Run OpenFold job on a cluster to fold --fasta with a registered --function UUID."""
     fasta_str = fasta_file.read_text()
 
     fxc = FuncXClient()
     task_id = fxc.run(
-        fasta_str,
+        fasta_str,  # Total payload must be < 10MB
         database_path,
         output_dir,
         openfold_path,
@@ -149,5 +145,9 @@ def status(task_id: UUID = typer.Argument(..., help="A task UUID.")) -> None:
     print(fxc.get_result(str(task_id)))
 
 
-if __name__ == "__main__":
+def main() -> None:
     app()
+
+
+if __name__ == "__main__":
+    main()
