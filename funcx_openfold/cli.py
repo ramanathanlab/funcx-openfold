@@ -13,10 +13,10 @@ app = typer.Typer()
 
 def func(
     fasta_str: str,
-    database_path: Path,
-    output_dir: Path,
-    openfold_path: Path,
-) -> OpenFoldResult:
+    database_path: "Path",
+    output_dir: "Path",
+    openfold_path: "Path",
+) -> "OpenFoldResult":
     """Run OpenFold.
 
     Parameters
