@@ -1,30 +1,14 @@
 """CLI for OpenFold funcX endpoint."""
-import subprocess
 from pathlib import Path
 from uuid import UUID
 
 import typer
 from funcx.sdk.client import FuncXClient
-from pydantic import BaseModel
 from rich import print
 
+from funcx_openfold.utils import OpenFoldResult
+
 app = typer.Typer()
-
-
-def _write_log(contents: str, path: Path) -> None:
-    with open(path, "w") as f:
-        f.write(contents)
-
-
-class OpenFoldResult(BaseModel):
-    """Return result from the OpenFold funcX endpoint."""
-
-    returncode: int
-    """Return code of the OpenFold job."""
-    stdout: str
-    """Standard out of the OpenFold job."""
-    stderr: str
-    """Standard error of the OpenFold job."""
 
 
 def func(
@@ -50,6 +34,10 @@ def func(
     ------
     OpenFoldResult : Result object storing the returncode, stdout, and stderr.
     """
+    import subprocess
+
+    from funcx_openfold.utils import OpenFoldResult, write_log
+
     # Write the fasta file
     output_dir.mkdir(exist_ok=True)
     fasta_path = output_dir / f"{hash(fasta_str)}.fasta"
@@ -81,8 +69,8 @@ def func(
         stdout=proc.stdout.decode("utf-8"),
         stderr=proc.stderr.decode("utf-8"),
     )
-    _write_log(result.stdout, output_dir / "stdout.log")
-    _write_log(result.stderr, output_dir / "stderr.log")
+    write_log(result.stdout, output_dir / "stdout.log")
+    write_log(result.stderr, output_dir / "stderr.log")
 
     return result
 
